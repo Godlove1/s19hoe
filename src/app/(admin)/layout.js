@@ -2,8 +2,8 @@ import { AuthContextProvider } from "@/lib/Authcontext";
 
 
 export const metadata = {
-  title: "Admin | Health Over Everything",
-  description: "Discover our natural remedies for a healthier life.",
+  title: "Admin Dashboard | Health Over Everything",
+  description: "HOE administration.",
 };
 
 export default function DashboardLayout({ children }) {

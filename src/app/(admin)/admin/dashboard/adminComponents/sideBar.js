@@ -15,7 +15,7 @@ import {
   HomeIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { Medicine01Icon,ShippingCenterIcon } from "hugeicons-react";
+import { Medicine01Icon,ShippingCenterIcon, ShoppingBagFavoriteIcon } from "hugeicons-react";
 import { usePathname } from "next/navigation";
 
 const menuItems = [
@@ -28,6 +28,11 @@ const menuItems = [
         name: "Products",
         icon: Medicine01Icon,
         link: "/admin/dashboard/products",
+      },
+      {
+        name: "Orders",
+        icon: ShoppingBagFavoriteIcon,
+        link: "/admin/dashboard/orders",
       },
 
       {

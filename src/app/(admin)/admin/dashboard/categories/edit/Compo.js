@@ -21,36 +21,49 @@ import { Label } from "@/components/ui/label";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
-import Image from "next/image";
 import Loading from "@/app/(users)/loading";
+import { useFirestoreCRUD, useFirestoreDoc } from "@/lib/firebaseHooks";
 
 export default function Compo({ editId }) {
- 
+  const {
+    data: categoryData,
+    loading,
+    error,
+  } = useFirestoreDoc("allCategories", editId);
+  const { updateDocument } = useFirestoreCRUD("allCategories");
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [editLoading, setEditLoading] = useState(false)
+  const [editLoading, setEditLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    status: "",
+  });
 
- const [formData, setFormData] = useState({
-   name: "",
-   status: "",
- });
+  // Update formData when categoryData changes
+  useEffect(() => {
+    if (categoryData) {
+      setFormData({
+        name: categoryData.name || "",
+        status: categoryData.status || "",
+      });
+    }
+  }, [categoryData]);
 
- const handleInputChange = (e) => {
-   const { name, value } = e.target;
-   setFormData((prevData) => ({
-     ...prevData,
-     [name]: value,
-   }));
- };
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
 
- const handleSelectChange = (value) => {
-   setFormData((prevData) => ({
-     ...prevData,
-     status: value,
-   }));
- };
+  const handleSelectChange = (value) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      status: value,
+    }));
+  };
 
+  // console.log(categoryData, "to be edited data")
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,17 +74,13 @@ export default function Compo({ editId }) {
       return;
     }
 
-
     try {
       setEditLoading(true);
 
-      const updatedFields = {
-        ...formData,
-        dateUpdated: new Date().toISOString(),
-      };
+      // console.log(formData, "status");
 
-      await toast.promise(updateDocument(singleCatRef(editId), updatedFields), {
-        loading: "Saving...",
+      await toast.promise(updateDocument(editId, formData), {
+        loading: "updating...",
         success: <b>Saved!</b>,
         error: <b>Could not Save.</b>,
       });
@@ -84,29 +93,6 @@ export default function Compo({ editId }) {
       setEditLoading(false);
     }
   };
-
-
-  useEffect(() => {
-    const getData = async () => {
-      setLoading(true);
-      try {
-        const res = await getDocument(singleCatRef(editId));
-        setFormData({
-          name: res?.name || "",
-          status: res?.status || "",
-          catPic: res?.catPic || "",
-        });
-
-        setLoading(false);
-        // console.log(res, ": response");
-      } catch (err) {
-        console.log(err, ": error");
-        toast.error("Something went wrong");
-      }
-    };
-
-    getData();
-  }, []);
 
   return (
     <>
@@ -130,7 +116,7 @@ export default function Compo({ editId }) {
                   placeholder="immune support"
                   className="col-span-3"
                   name="name"
-                  value={formData.name}
+                  value={formData?.name}
                   onChange={handleInputChange}
                   required
                 />
@@ -142,11 +128,10 @@ export default function Compo({ editId }) {
                 </Label>
                 <Select
                   onValueChange={handleSelectChange}
-                  value={formData.status}
-                  required
+                  defaultValue={formData?.status}
                 >
                   <SelectTrigger className="">
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder={formData?.status} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -176,7 +161,7 @@ export default function Compo({ editId }) {
                   size="lg"
                   className="w-full md:w-auto mt-6"
                 >
-                  Save
+                  Update
                 </Button>
               )}
             </div>

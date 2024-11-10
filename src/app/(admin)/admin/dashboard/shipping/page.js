@@ -1,8 +1,6 @@
 "use client";
 
-import { allCatsRef, deleteDocument, singleCatRef } from "@/lib/api";
 import { PlusCircledIcon } from "@radix-ui/react-icons";
-import { doc, getDocs, query, setDoc } from "firebase/firestore";
 import {
   Dialog,
   DialogContent,
@@ -12,35 +10,27 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import toast from "react-hot-toast";
-import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import "../../../../loading.css";
 import { Button } from "@/components/ui/button";
 import GridTable from "../adminComponents/GridTable";
 import ActionButtonComponent from "../adminComponents/ActionButtonComponent";
 import SkeletonTable from "../adminComponents/tableLoading";
+import { useFirestoreCRUD, useFirestoreQuery } from "@/lib/firebaseHooks";
 
 export default function Shipping() {
   const [isOpen, setIsOpen] = useState(false);
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-
   const [formData, setFormData] = useState({
     countryName: "",
     price: "",
   });
+   const [ELoad, setELoad] = useState(false);
+ 
+  const { data: data, loading, error } = useFirestoreQuery("allCountries");
+  const { addDocument, deleteDocument } = useFirestoreCRUD("allCountries");
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -50,35 +40,22 @@ export default function Shipping() {
     }));
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Simple check to ensure all fields are filled
-    if (!formData.name || !formData.price) {
+    if (!formData.price || !formData.countryName) {
       toast.error("all fields are required");
       return;
     }
 
     try {
-      setLoading(true);
-
-      const Id = doc(allCatsRef).id;
-      const object = {
-        id: Id,
-        ...formData,
-        dateCreated: new Date().toISOString(),
-      };
-
-      console.log("Form submitted:", object);
-
-      await toast.promise(setDoc(singleCatRef(object.id), object), {
-        loading: "Saving...",
-        success: <b>Saved!</b>,
-        error: <b>Could not Save.</b>,
-      });
-
+      setELoad(true);
+      const newUserId = await addDocument(formData);
+      console.log("Added Category:", newUserId);
+      setELoad(false);
       setIsOpen(false);
-      setLoading(false);
       setFormData({
         countryName: "",
         price: "",
@@ -86,40 +63,17 @@ export default function Shipping() {
     } catch (err) {
       console.log(err, ": error");
       toast.error("Something went wrong");
-      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    const getData = async () => {
-      setLoading(true);
-      try {
-        const initQuery = await getDocs(query(allCatsRef));
-        const res = initQuery.docs.map((doc) => ({
-          ...doc.data(),
-          id: doc.id,
-        }));
-
-        setData(res);
-        setLoading(false);
-
-        console.log(res, ": response");
-      } catch (err) {
-        console.log(err, ": error");
-        toast.error("Something went wrong");
-      }
-    };
-
-    getData();
-  }, []);
-
   async function executeDelete(id) {
     try {
-      await toast.promise(deleteDocument(singleCatRef(id)), {
+      await toast.promise(deleteDocument(id), {
         loading: "Deleting...",
         success: <b>Deleted!</b>,
         error: <b>Could not delete.</b>,
       });
+      console.log("Deleted user:", id);
     } catch (error) {
       console.error("Failed to delete document:", error);
     }
@@ -189,7 +143,7 @@ export default function Shipping() {
                   </Label>
                   <Input
                     id="countryName"
-                    placeholder="immune support"
+                    placeholder="Cameroon"
                     className="col-span-3"
                     name="countryName"
                     value={formData.countryName}
@@ -204,7 +158,7 @@ export default function Shipping() {
                   </Label>
                   <Input
                     id="price"
-                    placeholder="immune support"
+                    placeholder="1000"
                     className="col-span-3"
                     name="price"
                     value={formData.price}
@@ -215,7 +169,7 @@ export default function Shipping() {
               </div>
               <DialogFooter>
                 <div className="w-full flex justify-center items-center my-6">
-                  {loading ? (
+                  {ELoad ? (
                     <Button
                       variant="destructive"
                       size="lg"

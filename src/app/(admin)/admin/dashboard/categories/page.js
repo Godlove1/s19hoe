@@ -1,8 +1,6 @@
 "use client";
 
-import { allCatsRef, deleteDocument, singleCatRef } from "@/lib/api";
 import { PlusCircledIcon } from "@radix-ui/react-icons";
-import { doc, getDocs, query, setDoc } from "firebase/firestore";
 import {
   Dialog,
   DialogContent,
@@ -23,24 +21,26 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import React, { useEffect, useState } from "react";
+import React, {  useState } from "react";
 import toast from "react-hot-toast";
-import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import "../../../../loading.css";
 import { Button } from "@/components/ui/button";
 import GridTable from "../adminComponents/GridTable";
 import ActionButtonComponent from "../adminComponents/ActionButtonComponent";
 import SkeletonTable from "../adminComponents/tableLoading";
+import { useFirestoreCRUD, useFirestoreQuery } from "@/lib/firebaseHooks";
 
 export default function Categories() {
   const [isOpen, setIsOpen] = useState(false);
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-
+  const [ELoad, setELoad] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     status: "",
   });
+
+  const { data: data, loading, error } = useFirestoreQuery("allCategories");
+  const { addDocument, deleteDocument } =
+    useFirestoreCRUD("allCategories");
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -67,25 +67,11 @@ export default function Categories() {
     }
 
     try {
-      setLoading(true);
-
-      const Id = doc(allCatsRef).id;
-      const object = {
-        id: Id,
-        ...formData,
-        dateCreated: new Date().toISOString(),
-      };
-
-      console.log("Form submitted:", object);
-
-      await toast.promise(setDoc(singleCatRef(object.id), object), {
-        loading: "Saving...",
-        success: <b>Saved!</b>,
-        error: <b>Could not Save.</b>,
-      });
-
+      setELoad(true);
+      const newUserId = await addDocument(formData);
+      console.log("Added Category:", newUserId);
+      setELoad(false);
       setIsOpen(false);
-      setLoading(false);
       setFormData({
         name: "",
         status: "",
@@ -93,40 +79,17 @@ export default function Categories() {
     } catch (err) {
       console.log(err, ": error");
       toast.error("Something went wrong");
-      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    const getData = async () => {
-      setLoading(true);
-      try {
-        const initQuery = await getDocs(query(allCatsRef));
-        const res = initQuery.docs.map((doc) => ({
-          ...doc.data(),
-          id: doc.id,
-        }));
-
-        setData(res);
-        setLoading(false);
-
-        console.log(res, ": response");
-      } catch (err) {
-        console.log(err, ": error");
-        toast.error("Something went wrong");
-      }
-    };
-
-    getData();
-  }, []);
-
   async function executeDelete(id) {
     try {
-      await toast.promise(deleteDocument(singleCatRef(id)), {
+      await toast.promise(deleteDocument(id), {
         loading: "Deleting...",
         success: <b>Deleted!</b>,
         error: <b>Could not delete.</b>,
       });
+      console.log("Deleted user:", id);
     } catch (error) {
       console.error("Failed to delete document:", error);
     }
@@ -171,6 +134,8 @@ export default function Categories() {
       minWidth: 100,
     },
   ];
+
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <>
@@ -232,7 +197,7 @@ export default function Categories() {
               </div>
               <DialogFooter>
                 <div className="w-full flex justify-center items-center my-6">
-                  {loading ? (
+                  {ELoad ? (
                     <Button
                       variant="destructive"
                       size="lg"

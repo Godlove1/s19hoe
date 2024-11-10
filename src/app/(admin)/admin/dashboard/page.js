@@ -14,42 +14,30 @@ import {
   query,
   where,
 } from "firebase/firestore";
+import { useMultiCollectionStats } from "@/lib/firebaseHooks";
 
 export default function Dashboard() {
-  const [loading, setLoading] = useState(false);
 
-  const [counts, setCounts] = useState({
-    totalProducts: 0,
-    totalCategories: 0,
-    shipping: 0,
-  });
+  const { stats, loading, error } = useMultiCollectionStats([
+    {
+      name: "totalProducts",
+      collection: "allProducts",
+    },
+    {
+      name: "totalCategories",
+      collection: "allCategories",
+    },
+    {
+      name: "totalOrders",
+      collection: "allOrders",
+    },
+    {
+      name: "totalCountries",
+      collection: "allCountries",
+    },
+  ]);
 
-  useEffect(() => {
-    const fetchCounts = async () => {
-      setLoading(true);
-      try {
-        const [totalProducts, totalCategories, shipping] = await Promise.all([
-          getCountFromServer(allOrdersRef),
-          getCountFromServer(allCustomRequestsRef),
-          getCountFromServer(allCatsRef),
-        ]);
-
-        setCounts({
-          totalProducts: totalProducts.data().count,
-          totalCategories: totalCategories.data().count,
-          shipping: shipping.data().count,
-        });
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching counts: ", error);
-        setLoading(false);
-      }
-    };
-
-    fetchCounts();
-  }, []);
-
-  // console.log(counts, "counts")
+    if (error) return <div>Error: {error}</div>;
 
   return (
     <>
@@ -71,12 +59,9 @@ export default function Dashboard() {
                     <p className="skeleton bg-gray-200 h-6 w-6"></p>
                   </>
                 ) : (
-                  <>{counts?.totalProducts}</>
+                  <>{stats?.totalProducts}</>
                 )}
               </div>
-              {/* <p className="text-xs text-muted-foreground">
-                +20.1% from last month
-              </p> */}
             </CardContent>
           </Card>
 
@@ -94,15 +79,31 @@ export default function Dashboard() {
                     <p className="skeleton bg-gray-200 h-6 w-6"></p>
                   </>
                 ) : (
-                  <>{counts?.totalCategories}</>
+                  <>{stats?.totalCategories}</>
                 )}
               </div>
-              {/* <p className="text-xs text-muted-foreground">
-                +20.1% from last month
-              </p> */}
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+             Total Orders
+              </CardTitle>
+              <CatalogueIcon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loading ? (
+                  <>
+                    <p className="skeleton bg-gray-200 h-6 w-6"></p>
+                  </>
+                ) : (
+                  <>{stats?.totalOrders}</>
+                )}
+              </div>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -117,12 +118,9 @@ export default function Dashboard() {
                     <p className="skeleton bg-gray-200 h-6 w-6"></p>
                   </>
                 ) : (
-                  <>{counts?.shipping}</>
+                  <>{stats?.totalCountries}</>
                 )}
               </div>
-              {/* <p className="text-xs text-muted-foreground">
-                +20.1% from last month
-              </p> */}
             </CardContent>
           </Card>
         </div>

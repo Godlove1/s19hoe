@@ -15,9 +15,7 @@ export default function SignUp() {
 
  const allowedEmails = [
    "ething215@gmail.com",
-   "user2@example.com",
-   "user3@example.com",
- ]; // Add your allowed emails here
+ ]; 
 
  const signUpWithGoogle = async () => {
    const provider = new GoogleAuthProvider();
@@ -54,7 +52,7 @@ export default function SignUp() {
       <div className="bg-white py-8 px-4 sm:rounded-lg sm:px-10 w-full max-w-md">
         <div className="mt-6">
           <div className="flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">login with</span>
+            <span className="px-2 bg-white  text-gray-500">login with</span>
           </div>
 
           <div className="mt-6">

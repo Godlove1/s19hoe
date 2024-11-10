@@ -1,13 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { allCatsRef, allFoodsRef, deleteDocument, foodRef } from "@/lib/api";
-import { PlusCircledIcon } from "@radix-ui/react-icons";
-import { doc, getDocs, query, setDoc } from "firebase/firestore";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -27,69 +23,86 @@ import toast from "react-hot-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { DialogTitle } from "@radix-ui/react-dialog";
-import Image from "next/image";
 import "../../../../loading.css";
 import GridTable from "../adminComponents/GridTable";
 import SkeletonTable from "../adminComponents/tableLoading";
 import ActionButtonComponent from "../adminComponents/ActionButtonComponent";
+import {
+  useFirestoreCRUD,
+  useFirestoreQuery,
+  useMultiJoinFirestoreQuery,
+} from "@/lib/firebaseHooks";
+import { orderBy } from "firebase/firestore";
 
 export default function AllFood() {
+  const {
+    documents: data,
+    loading,
+    error,
+  } = useMultiJoinFirestoreQuery({
+    collection: "allProducts",
+    constraints: [orderBy("createdAt", "desc")], 
+    joins: [
+      {
+        collection: "allCategories",
+        foreignKey: "categoryId",
+        as: "category",
+      },
+    ],
+  });
+
+  const { data: categories, loading: categoriesLoading } =
+    useFirestoreQuery("allCategories");
+  const { addDocument, deleteDocument } = useFirestoreCRUD("allProducts");
+
+  const [ELoad, setELoad] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [errors, setErrors] = useState({});
-  const [categories, setCategories] = useState([]);
-  const [categoryMap, setCatMap] = useState({});
-  const [formData, setFormData] = useState({
+
+  const initialFormState = {
     name: "",
     price: "",
     status: "",
     description: "",
+    howToUse: "",
     categoryId: "",
     minOrder: 1,
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
+
+  const categoryMap =
+    categories?.reduce((acc, cat) => {
+      acc[cat.id] = cat.name;
+      return acc;
+    }, {}) || {};
 
   useEffect(() => {
-    const getData = async () => {
-      setLoading(true);
-      try {
-        const [products, catsQuery] = await Promise.all([
-          getDocs(query(allFoodsRef)),
-          getDocs(query(allCatsRef)),
-        ]);
-
-        setData(products.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
-
-        const fetchedCategories = catsQuery.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        setCategories(fetchedCategories);
-
-        // CATEGORY MAP
-        const categoryMap = {};
-        fetchedCategories.forEach((cat) => {
-          categoryMap[cat.id] = cat.name;
-        });
-
-        setCatMap(categoryMap);
-
-        setLoading(false);
-      } catch (err) {
-        console.log(err, ": error");
-        toast.error("Something went wrong");
-      }
+    return () => {
+      imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
     };
+  }, [imagePreviews]);
 
-    getData();
-  }, []);
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = "Name is required";
+    if (!formData.price || formData.price <= 0)
+      newErrors.price = "Valid price is required";
+    if (!formData.categoryId) newErrors.categoryId = "Category is required";
+    if (!formData.status) newErrors.status = "Status is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     setImageFiles(files);
+
+    imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
+
     const previews = files.map((file) => URL.createObjectURL(file));
     setImagePreviews(previews);
   };
@@ -109,83 +122,74 @@ export default function AllFood() {
     }));
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!formData.price || isNaN(formData.price))
-      newErrors.price = "Valid price is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const resetForm = () => {
+    setFormData(initialFormState);
+    setErrors({});
+    setImageFiles([]);
+    imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
+    setImagePreviews([]);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+
+    if (!validateForm()) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
     try {
-      setLoading(true);
-
-      const imageUrls = await Promise.all(
-        imageFiles.map(async (file) => {
-          const storage = getStorage();
-          const storageRef = ref(storage, `productImages/${file.name}`);
-          await uploadBytes(storageRef, file);
-          return await getDownloadURL(storageRef);
-        })
-      );
-
-      const object = {
-        id: doc(allFoodsRef).id,
+      setELoad(true);
+      let productData = {
         ...formData,
-        minOrder: Number(formData.minOrder),
         searchName: formData.name.toLowerCase(),
         price: Number(formData.price),
-        productPics: imageUrls,
-        dateCreated: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        productPics: [], // Default empty array for images
       };
 
-      console.log("Form submitted:", object);
+      // Only process images if files were selected
+      if (imageFiles.length > 0) {
+        const imageUrls = await Promise.all(
+          imageFiles.map(async (file) => {
+            toast.loading(`Uploading ${file.name}`);
+            const storage = getStorage();
+            const uniqueFileName = `${Date.now()}_${file.name}`;
+            const storageRef = ref(storage, `productImages/${uniqueFileName}`);
+            await uploadBytes(storageRef, file);
+            return await getDownloadURL(storageRef);
+          })
+        );
+        productData.productPics = imageUrls;
+      }
 
-      await toast.promise(setDoc(foodRef(object.id), object), {
-        loading: "Saving...",
-        success: <b>Saved!</b>,
-        error: <b>Could not Save.</b>,
+      await toast.promise(addDocument(productData), {
+        loading: "Saving product...",
+        success: "Product saved successfully!",
+        error: "Failed to save product",
       });
 
       setIsOpen(false);
-      setLoading(false);
-      refreshPage();
-      setFormData({
-        name: "",
-        price: "",
-        status: "",
-        description: "",
-        productPics: "",
-        categoryId: "",
-        minOrder: 1 || "",
-      });
-      setImagePreviews(null);
-      setImageFiles(null);
+      resetForm();
     } catch (err) {
-      console.log(err, ": error");
-      toast.error("Something went wrong");
-      setLoading(false);
+      console.error("Error saving product:", err);
+      toast.error("Failed to save product");
+    } finally {
+      setELoad(false);
     }
   };
 
-  // console.log(data, "data")
-
-  async function executeDelete(id) {
+  const executeDelete = async (id) => {
     try {
-      await toast.promise(deleteDocument(foodRef(id)), {
-        loading: "Deleting...",
-        success: <b>Deleted!</b>,
-        error: <b>Could not delete.</b>,
+      await toast.promise(deleteDocument(id), {
+        loading: "Deleting product...",
+        success: "Product deleted successfully!",
+        error: "Failed to delete product",
       });
-      refreshPage();
     } catch (error) {
-      console.error("Failed to delete document:", error);
+      console.error("Failed to delete product:", error);
     }
-  }
+  };
 
   const columnDefs = [
     {
@@ -200,14 +204,13 @@ export default function AllFood() {
       headerName: "Name",
       cellRenderer: (params) => (
         <div className="flex items-center">
-          {/* <Image
-            src={params.data.foodPic || "/logo.jpg"}
-            width={10}
-            height={10}
-            priority
-            alt="logo"
-            className="w-8 h-8 mr-3 rounded-full shadow"
-          /> */}
+          {params.data.productPics?.[0] && (
+            <img
+              src={params.data.productPics[0]}
+              alt={params.data.name}
+              className="w-8 h-8 mr-3 rounded-full shadow object-cover"
+            />
+          )}
           <p>{params.data.name}</p>
         </div>
       ),
@@ -263,7 +266,7 @@ export default function AllFood() {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[900px] rounded-lg  p-0 lg:p-6">
+          <DialogContent className="sm:max-w-[900px] rounded-lg p-0 lg:p-6">
             <DialogHeader>
               <DialogTitle className="text-red-500 font-bold text-xl">
                 New Product
@@ -278,7 +281,8 @@ export default function AllFood() {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    placeholder="Enter food name"
+                    placeholder="Enter product name"
+                    required
                   />
                   {errors.name && (
                     <p className="text-red-500 text-sm mt-1">{errors.name}</p>
@@ -291,9 +295,12 @@ export default function AllFood() {
                     id="price"
                     name="price"
                     type="number"
+                    min="0"
+                    step="0.01"
                     value={formData.price}
                     onChange={handleInputChange}
                     placeholder="Enter price"
+                    required
                   />
                   {errors.price && (
                     <p className="text-red-500 text-sm mt-1">{errors.price}</p>
@@ -343,36 +350,33 @@ export default function AllFood() {
                     <SelectContent>
                       <SelectGroup>
                         <SelectLabel>Status</SelectLabel>
-                        <SelectItem value="ON">Live</SelectItem>
-                        <SelectItem value="OFF">Disable</SelectItem>
+                        <SelectItem value="ON">Available</SelectItem>
+                        <SelectItem value="OFF">Not Available</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="flex items-center">
-                  <div className="f">
-                    <Label htmlFor="picture">Pictures</Label>
-                    <Input
-                      id="picture"
-                      type="file"
-                      onChange={handleImageChange}
-                      accept="image/*"
-                      multiple
-                    />
+                <div className="flex flex-col">
+                  <Label htmlFor="picture">Pictures</Label>
+                  <Input
+                    id="picture"
+                    type="file"
+                    onChange={handleImageChange}
+                    accept="image/*"
+                    multiple
+                  />
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="w-24 h-24 relative">
+                        <img
+                          src={preview}
+                          alt={`preview ${index + 1}`}
+                          className="w-full h-full object-cover border rounded-md border-gray-300"
+                        />
+                      </div>
+                    ))}
                   </div>
-                  {imagePreviews.map((preview, index) => (
-                    <div
-                      key={index}
-                      className="mt-2 w-20 h-20 overflow-hidden  ml-4 "
-                    >
-                      <img
-                        src={preview}
-                        alt={`preview ${index + 1}`}
-                        className="w-full h-full border rounded-md border-gray-300"
-                      />
-                    </div>
-                  ))}
                 </div>
               </div>
 
@@ -383,52 +387,57 @@ export default function AllFood() {
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  placeholder="Enter food description"
-                  className="min-h-[50px]"
+                  placeholder="Enter product description"
+                  className="min-h-[100px]"
+                  required
                 />
               </div>
 
               <div>
-                <Label htmlFor="description">How to use</Label>
+                <Label htmlFor="howToUse">How to use</Label>
                 <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
+                  id="howToUse"
+                  name="howToUse"
+                  value={formData.howToUse}
                   onChange={handleInputChange}
-                  placeholder="Enter food description"
-                  className="min-h-[50px]"
+                  placeholder="Enter usage instructions..."
+                  className="min-h-[100px]"
+                  required
                 />
               </div>
 
-              <div className="w-full my-4 flex justify-center items-center">
-                {loading ? (
-                  <Button
-                    variant="destructive"
-                    size="lg"
-                    className="w-1/2  mt-6"
-                  >
-                    <span className="loading loading-ring loading-lg text-white"></span>
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    variant="destructive"
-                    size="lg"
-                    className="w-1/2  mt-6"
-                  >
-                    Add product
-                  </Button>
-                )}
+              <div className="w-full flex justify-center items-center">
+                <Button
+                  type="submit"
+                  variant="destructive"
+                  size="lg"
+                  className="w-1/2 mt-6"
+                  disabled={ELoad}
+                >
+                  {ELoad ? (
+                    <>
+                      <span className="loading loading-ring loading-lg text-white"></span>{" "}
+                      saving
+                    </>
+                  ) : (
+                    "Add product"
+                  )}
+                </Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
       </div>
-      <div className="wrapper my-3 ">
+
+      <div className="wrapper my-3">
         {loading ? (
           <SkeletonTable />
+        ) : error ? (
+          <div className="text-red-500 text-center py-4">
+            Error loading products: {error.message}
+          </div>
         ) : (
-          <div className={"ag-theme-quartz"} style={{ height: 500 }}>
+          <div className="ag-theme-quartz" style={{ height: 500 }}>
             <GridTable columnDefs={columnDefs} data={data} />
           </div>
         )}

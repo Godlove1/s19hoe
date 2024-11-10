@@ -1,37 +1,37 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  getDocument,
-  singleAnnounceRef,
-  singleCatRef,
-  updateDocument,
-} from "@/lib/api";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import Loading from "@/app/(users)/loading";
+import { useFirestoreCRUD, useFirestoreDoc } from "@/lib/firebaseHooks";
 
 export default function Compo({ editId }) {
+  const {
+    data: countryData,
+    loading,
+    error,
+  } = useFirestoreDoc("allCountries", editId);
+  const { updateDocument } = useFirestoreCRUD("allCountries");
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
-
   const [formData, setFormData] = useState({
     countryName: "",
     price: "",
   });
+
+  // Update formData when countryData changes
+  useEffect(() => {
+    if (countryData) {
+      setFormData({
+        countryName: countryData.countryName || "",
+        price: countryData.price || "",
+      });
+    }
+  }, [countryData]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -43,8 +43,9 @@ export default function Compo({ editId }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     // Simple check to ensure all fields are filled
-    if (!formData.name || !formData.price) {
+    if (!formData.countryName || !formData.price) {
       toast.error("all fields are required");
       return;
     }
@@ -52,16 +53,16 @@ export default function Compo({ editId }) {
     try {
       setEditLoading(true);
 
-      const updatedFields = {
-        ...formData,
-        dateUpdated: new Date().toISOString(),
-      };
+      // console.log(formData, "status");
 
-      await toast.promise(updateDocument(singleCatRef(editId), updatedFields), {
-        loading: "Saving...",
-        success: <b>Saved!</b>,
-        error: <b>Could not Save.</b>,
-      });
+      await toast.promise(
+        updateDocument(editId, { ...formData, price: Number(formData?.price) }),
+        {
+          loading: "updating...",
+          success: <b>Saved!</b>,
+          error: <b>Could not Save.</b>,
+        }
+      );
 
       router.push("/admin/dashboard/shipping");
 
@@ -71,28 +72,6 @@ export default function Compo({ editId }) {
       setEditLoading(false);
     }
   };
-
-  useEffect(() => {
-    const getData = async () => {
-      setLoading(true);
-      try {
-        const res = await getDocument(singleCatRef(editId));
-        setFormData({
-          name: res?.name || "",
-          status: res?.status || "",
-          catPic: res?.catPic || "",
-        });
-
-        setLoading(false);
-        // console.log(res, ": response");
-      } catch (err) {
-        console.log(err, ": error");
-        toast.error("Something went wrong");
-      }
-    };
-
-    getData();
-  }, []);
 
   return (
     <>
@@ -113,7 +92,7 @@ export default function Compo({ editId }) {
                 </Label>
                 <Input
                   id="countryName"
-                  placeholder="immune support"
+                  placeholder="cameroon"
                   className="col-span-3"
                   name="countryName"
                   value={formData.countryName}
@@ -128,7 +107,7 @@ export default function Compo({ editId }) {
                 </Label>
                 <Input
                   id="price"
-                  placeholder="immune support"
+                  placeholder="cameroon"
                   className="col-span-3"
                   name="price"
                   value={formData.price}
