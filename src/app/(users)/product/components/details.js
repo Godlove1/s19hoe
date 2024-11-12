@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Minus, Plus, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Loader2, Minus, Plus, ShoppingCart } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/accordion";
 import ProductCard from "@/components/custom/ProductCard";
 import { useCart } from "react-use-cart";
+import { useFirestoreQuery } from "@/lib/firebaseHooks";
+import { where } from "firebase/firestore";
 
 
 // Mock product data (in a real app, this would come from an API or database)
@@ -43,36 +45,15 @@ const product = {
   ],
 };
 
-const recommendedProducts = [
-  {
-    id: 2,
-    name: "Immune System Booster",
-    price: 127.81,
-    originalPrice: 163.38,
-  },
-  {
-    id: 3,
-    name: "Digestive Enzyme Complex",
-    price: 97.81,
-    originalPrice: 133.38,
-  },
-  {
-    id: 4,
-    name: "Cancer Support Formula",
-    price: 197.81,
-    originalPrice: 233.38,
-  },
-  {
-    id: 5,
-    name: "Arthritis Relief Blend",
-    price: 147.81,
-    originalPrice: 183.38,
-  },
-  { id: 6, name: "Memory Enhancer", price: 167.81, originalPrice: 203.38 },
-];
 
 export default function ProductPage({ item }) {
   
+    // const {
+    //   data: recommendedProducts,
+    //   loading,
+    //   error,
+    // } = useFirestoreQuery("allProducts", [where("categoryId", "==", item?.categoryId)]);
+
   const { updateItemQuantity, getItem, addItem } = useCart();
 
   // Get the item from cart if it exists
@@ -109,7 +90,7 @@ export default function ProductPage({ item }) {
               <CarouselItem key={index}>
                 <Image
                   src={src}
-                  alt={`${product.name} - Image ${index + 1}`}
+                  alt={`${product?.name} - Image ${index + 1}`}
                   width={500}
                   height={500}
                   className="w-full rounded-lg"
@@ -123,15 +104,15 @@ export default function ProductPage({ item }) {
 
         {/* Product Details */}
         <div>
-          <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
-          <p className="text-gray-600 mb-4">{product.category}</p>
+          <h1 className="text-3xl font-bold mb-4">{item?.name}</h1>
+          {/* <p className="text-gray-600 mb-4">{product.category}</p> */}
           <div className="flex items-baseline mb-4">
             <span className="text-2xl font-bold text-green-600 mr-2">
-              ${product.price.toFixed(2)}
+              ${item?.price.toFixed(2)}
             </span>
-            <span className="text-gray-500 line-through">
+            {/* <span className="text-gray-500 line-through">
               ${product.originalPrice.toFixed(2)}
-            </span>
+            </span> */}
           </div>
 
           <div className="cta flex justify-start items-center my-8 gap-x-6">
@@ -147,7 +128,7 @@ export default function ProductPage({ item }) {
               </Button>
             </div>
             <Button
-              onClick={() => addItem(product)}
+              onClick={() => addItem(item)}
               className="w-auto bg-green-600 hover:bg-green-700 text-white"
             >
               <ShoppingCart className="mr-2 h-5 w-5" /> Add to Cart
@@ -157,11 +138,11 @@ export default function ProductPage({ item }) {
           <Accordion type="single" collapsible className="w-full my-6">
             <AccordionItem value="description">
               <AccordionTrigger>Product Description</AccordionTrigger>
-              <AccordionContent>{product.description}</AccordionContent>
+              <AccordionContent>{item?.description}</AccordionContent>
             </AccordionItem>
             <AccordionItem value="usage">
               <AccordionTrigger>How to Use</AccordionTrigger>
-              <AccordionContent>{product.usage}</AccordionContent>
+              <AccordionContent>{item?.howToUse}</AccordionContent>
             </AccordionItem>
           </Accordion>
         </div>
@@ -169,11 +150,19 @@ export default function ProductPage({ item }) {
 
       {/* Recommended Products */}
       <section className="mt-16 md:mt-32 md:px-32">
-        <h2 className="text-2xl font-bold mb-6">Recommended Products</h2>
+        {/* <h2 className="text-2xl font-bold mb-6">Recommended Products</h2> */}
+{/* 
+         {
+            loading && recommendedProducts.length === 0 (
+              <div className="flex items-center justify-center text-gray-400"> loading recommendations
+                <Loader2 className="animate-spin h-5 w-5 mr-3" /></div>)
+        } */}
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {recommendedProducts.map((product) => (
+          {/* {recommendedProducts?.map((product) => (
             <ProductCard key={product?.id} product={product} />
-          ))}
+          ))} */}
+         
         </div>
       </section>
     </div>

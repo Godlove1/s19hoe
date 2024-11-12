@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { updateDocument } from "@/lib/api";
 import {
   Select,
   SelectContent,
@@ -20,7 +19,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Loading from "@/app/(users)/loading";
-import { useFirestoreCRUD, useFirestoreDoc, useFirestoreQuery } from "@/lib/firebaseHooks";
+import {
+  useFirestoreCRUD,
+  useFirestoreDoc,
+  useFirestoreQuery,
+} from "@/lib/firebaseHooks";
 
 export default function ProductEditForm({ editId }) {
   const router = useRouter();
@@ -38,32 +41,33 @@ export default function ProductEditForm({ editId }) {
     minOrder: 1,
   });
 
-  const { data: categories } = useFirestoreQuery("allCategories");
-
+  const { data:categories } = useFirestoreQuery("allCategories");
   const {
-    data: productData,
+    data:productData,
     loading,
     error,
   } = useFirestoreDoc("allProducts", editId);
-    const { updateDocument } = useFirestoreCRUD("allProducts");
+  const { updateDocument } = useFirestoreCRUD("allProducts");
 
   useEffect(() => {
     if (productData) {
       setFormData({
-        name: productData?.name || "",
-        price: productData?.price || "",
+        name: productData.name || "",
+        price: productData.price?.toString() || "",
         status: productData?.status || "",
-        description: productData?.description || "",
-        howToUse: productData?.howToUse || "",
+        description: productData.description || "",
+        howToUse: productData.howToUse || "",
         categoryId: productData?.categoryId || "",
-        minOrder: productData?.minOrder || 1,
+        minOrder: productData.minOrder || 1,
       });
-      setImagePreviews(productData?.productPics || []);
+      setImagePreviews(productData.productPics || []);
     }
+
+    console.log(productData, "productData")
   }, [productData]);
 
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files || []);
     setImageFiles(files);
     const previews = files.map((file) => URL.createObjectURL(file));
     setImagePreviews(previews);
@@ -77,17 +81,26 @@ export default function ProductEditForm({ editId }) {
     }));
   };
 
-  const handleSelectChange = (value, name) => {
+ 
+   const handleCategoryChange = (value) => {
+     setFormData((prevData) => ({
+       ...prevData,
+       categoryId: value,
+     }));
+  };
+  
+  const handleStatusChange = (value) => {
     setFormData((prevData) => ({
       ...prevData,
-      [name]: value,
+      status: value,
     }));
   };
+
 
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!formData.price || isNaN(formData.price))
+    if (!formData.price || isNaN(Number(formData.price)))
       newErrors.price = "Valid price is required";
     if (!formData.categoryId) newErrors.categoryId = "Category is required";
     if (!formData.status) newErrors.status = "Status is required";
@@ -110,7 +123,7 @@ export default function ProductEditForm({ editId }) {
         ...formData,
         searchName: formData.name.toLowerCase(),
         price: Number(formData.price),
-        productPics: imagePreviews, // Keep existing images if no new ones
+        productPics: imagePreviews,
       };
 
       if (imageFiles.length > 0) {
@@ -136,7 +149,7 @@ export default function ProductEditForm({ editId }) {
         error: "Failed to update product",
       });
 
-console.log(productData, "productData")
+      console.log(productData, "productData");
       router.push("/admin/dashboard/products");
     } catch (err) {
       console.error("Error updating product:", err);
@@ -146,7 +159,8 @@ console.log(productData, "productData")
     }
   };
 
-  if (loading) return <Loading />;
+  // Only render the form when formData is fully populated
+if (loading || !formData.status) return <Loading />;
   if (error) return <div>Error: {error.message}</div>;
 
   return (
@@ -191,22 +205,23 @@ console.log(productData, "productData")
             <div>
               <Label htmlFor="categoryId">Category</Label>
               <Select
-                onValueChange={(value) =>
-                  handleSelectChange(value, "categoryId")
-                }
+                onValueChange={handleCategoryChange}
                 value={formData.categoryId}
               >
-                <SelectTrigger>
+                <SelectTrigger className="">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectLabel>Categories</SelectLabel>
-                    {categories?.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
+                    <SelectLabel>--category--</SelectLabel>
+
+                    {categories?.map((res, i) => {
+                      return (
+                        <SelectItem key={i} value={res?.id}>
+                          {res?.name}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -218,22 +233,23 @@ console.log(productData, "productData")
             <div>
               <Label htmlFor="status">Status</Label>
               <Select
-                onValueChange={(value) => handleSelectChange(value, "status")}
-                value={formData.status}
+                value={formData.status || ""} 
+                onValueChange={handleStatusChange}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder="Select status" />     
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Status</SelectLabel>
-                    <SelectItem value="ON">Active</SelectItem>
-                    <SelectItem value="OFF">Inactive</SelectItem>
+                    <SelectItem value="ON">Available</SelectItem>
+                    <SelectItem value="OFF">Not Available</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              {errors.status && (
-                <p className="text-red-500 text-sm mt-1">{errors.status}</p>
+
+              {errors?.status && (
+                <p className="text-red-500 text-sm mt-1">{errors?.status}</p>
               )}
             </div>
 

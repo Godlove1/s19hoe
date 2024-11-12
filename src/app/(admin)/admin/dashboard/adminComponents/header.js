@@ -24,7 +24,7 @@ export default function Header({ toggleSidebar }) {
 
   return (
     <>
-      <header className="flex h-16 items-center  justify-between border-b bg-white px-4 lg:px-6">
+      <header className="flex h-16 items-center justify-between border-b bg-white px-4 lg:px-6">
         <Button
           variant="ghost"
           size="icon"
@@ -38,29 +38,28 @@ export default function Header({ toggleSidebar }) {
             {user?.isAnonymous ? (
               <Link title="go to login" href={"/login"}>
                 <UserAccountIcon
-                  className="ml-4 text-gray-600  hover:text-green-600 transition-all ease-linear rounded-md p-1 cursor-pointer"
+                  className="ml-4 text-gray-600 hover:text-green-600 transition-all ease-linear rounded-md p-1 cursor-pointer"
                   size={34}
                 />
               </Link>
             ) : (
-              <div className="flex items-center justify-end  w-full">
+              <div className="flex items-center justify-end w-full">
                 <Button
                   variant="ghost"
                   size="icon"
                   title="Logout"
-                  className="font-bold capitalize text-xl mx-4"
+                  className="font-bold capitalize mx-4"
                 >
                   {user?.displayName}
                 </Button>
-
                 <Button
                   onClick={logOut}
                   variant="destructive"
                   size="icon"
                   title="Logout"
-                  className="mx-8 w-[200px]"
+                  className="mx-8 w-[100px]"
                 >
-                Log out  <Logout01Icon size={32} /> 
+                  Log out <Logout01Icon size={32} />
                 </Button>
               </div>
             )}

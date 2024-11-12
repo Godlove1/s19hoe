@@ -28,9 +28,9 @@ export default function ProductCard({ product }) {
             <span className="text-green-600 font-bold">
               ${product.price.toFixed(2)}
             </span>
-            <span className="text-gray-400 line-through ml-2">
+            {/* <span className="text-gray-400 line-through ml-2">
               ${product.originalPrice.toFixed(2)}
-            </span>
+            </span> */}
           </div>
         </div>
         <div className="w-full flex justify-center items-center">

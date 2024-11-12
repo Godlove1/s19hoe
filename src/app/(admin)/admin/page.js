@@ -7,6 +7,8 @@ import {
   GoogleAuthProvider,
   updateProfile,
 } from "firebase/auth";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -87,6 +89,10 @@ export default function SignUp() {
               Google
             </Button>
           </div>
+          <Link href={'/'} className="flex justify-center text-sm mt-8">
+            <span className="px-2 bg-white  text-gray-500 flex items-center underline
+            "> <ArrowLeft className="mx-3" /> back to website</span>
+          </Link>
         </div>
       </div>
     </div>

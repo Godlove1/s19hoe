@@ -60,7 +60,7 @@ export function useFirestoreQuery(
         }));
 
         setData(docs);
-        console.log(docs, "documents")
+        console.log(docs, "collection:", collectionName,"documents")
         setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
         setHasMore(snapshot.docs.length === pageSize);
         setError(null);
@@ -123,7 +123,12 @@ export function useFirestoreDoc(collectionName, docId) {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setData({ id: docSnap.id, ...docSnap.data() });
+         const data = { id: docSnap.id, ...docSnap.data() };
+         setData(data);
+         console.log(
+           `Fetched data from Firestore collection '${collectionName}', document '${docId}':`,
+           data
+         );
         } else {
           setData(null);
         }
@@ -221,7 +226,7 @@ export function useFirestoreCRUD(collectionName) {
 }
 
 // JOIN AND GET DATA FROM MULTIPLE COLLECTIONS
-// Generic join configuration
+// Generic join 2 collection configuration
 export function useFirestoreCollectionJoin  (
   sourceCollection,
   constraints = [],
@@ -368,6 +373,139 @@ export function useFirestoreCollectionJoin  (
     loadMore,
   };
 }; 
+
+
+// multiple collections
+export function useMultiJoinFirestoreQuery({
+  collection: collectionName,
+  constraints = [],
+  joins = [],
+}) {
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+
+  async function fetchJoinedDoc(joinConfig, foreignId) {
+    try {
+      const joinedDoc = await getDoc(doc(db, joinConfig.collection, foreignId));
+      if (!joinedDoc.exists()) return null;
+
+      return {
+        id: joinedDoc.id,
+        ...joinedDoc.data(),
+      };
+    } catch (err) {
+      console.error(`Error fetching ${joinConfig.collection}:`, err);
+      return null;
+    }
+  }
+
+  async function processDocuments(docs) {
+    const processedDocs = await Promise.all(
+      docs.map(async (doc) => {
+        const baseData = {
+          id: doc.id,
+          ...doc.data(),
+        };
+
+        // Process joins sequentially
+        const joinedData = {};
+        for (const joinConfig of joins) {
+          const foreignId = baseData[joinConfig.foreignKey];
+          if (foreignId) {
+            const joinedDoc = await fetchJoinedDoc(joinConfig, foreignId);
+            if (joinedDoc) {
+              joinedData[joinConfig.as] = joinedDoc;
+            }
+          }
+        }
+
+        return {
+          ...baseData,
+          ...joinedData,
+        };
+      })
+    );
+
+    return processedDocs;
+  }
+
+  // Initial fetch
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchInitialData() {
+      try {
+        setLoading(true);
+        const collectionRef = collection(db, collectionName);
+        const baseQuery = query(collectionRef, ...constraints, limit(pageSize));
+
+        const snapshot = await getDocs(baseQuery);
+        const processedDocs = await processDocuments(snapshot.docs);
+
+        console.log("multi-join-data:", processedDocs);
+
+        if (isMounted) {
+          setDocuments(processedDocs);
+          setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+          setHasMore(snapshot.docs.length === pageSize);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error("Error fetching data:", err);
+          setError(err.message);
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchInitialData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [collectionName, JSON.stringify(constraints), pageSize]);
+
+  // Load more function
+  const loadMore = async () => {
+    if (!lastDoc || !hasMore || loading) return;
+
+    try {
+      setLoading(true);
+
+      const collectionRef = collection(db, collectionName);
+      const nextQuery = query(
+        collectionRef,
+        ...constraints,
+        startAfter(lastDoc),
+        limit(pageSize)
+      );
+
+      const snapshot = await getDocs(nextQuery);
+      const moreDocs = await processDocuments(snapshot.docs);
+
+      setDocuments((prev) => [...prev, ...moreDocs]);
+      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+      setHasMore(snapshot.docs.length === pageSize);
+    } catch (err) {
+      console.error("Error loading more:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    documents,
+    loading,
+    error,
+    hasMore,
+    loadMore,
+  };
+}
 
 
 
@@ -546,8 +684,6 @@ function UserList() {
 }
 
 
-
-
 // 2. Getting a single document: useFirestoreDoc hook
 
 function UserProfile({ userId }) {
@@ -564,9 +700,6 @@ function UserProfile({ userId }) {
     </div>
   );
 }
-
-
-
 
 
 //  3. CRUD operations: useFirestoreCRUD hook
@@ -616,7 +749,6 @@ function UserManager() {
   );
 }
   
-
 
 //USE CASE FOR COUNTS
 // 4.Simple Count (one-time fetch)
@@ -704,131 +836,3 @@ function RevenueStats() {
 }
 
 
-
-
-export function useMultiJoinFirestoreQuery(
-  { collection: collectionName, constraints = [], joins = []}
-) {
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [lastDoc, setLastDoc] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
-
-  async function fetchJoinedDoc(joinConfig, foreignId) {
-    try {
-      const joinedDoc = await getDoc(doc(db, joinConfig.collection, foreignId));
-      if (!joinedDoc.exists()) return null;
-
-      return {
-        id: joinedDoc.id,
-        ...joinedDoc.data(),
-      };
-    } catch (err) {
-      console.error(`Error fetching ${joinConfig.collection}:`, err);
-      return null;
-    }
-  }
-
-  async function processDocuments(docs) {
-    const processedDocs = await Promise.all(
-      docs.map(async (doc) => {
-        const baseData = {
-          id: doc.id,
-          ...doc.data(),
-        };
-
-        // Process joins sequentially
-        const joinedData = {};
-        for (const joinConfig of joins) {
-          const foreignId = baseData[joinConfig.foreignKey];
-          if (foreignId) {
-            const joinedDoc = await fetchJoinedDoc(joinConfig, foreignId);
-            if (joinedDoc) {
-              joinedData[joinConfig.as] = joinedDoc;
-            }
-          }
-        }
-
-        return {
-          ...baseData,
-          ...joinedData,
-        };
-      })
-    );
-
-    return processedDocs;
-  }
-
-  // Initial fetch
-  useEffect(() => {
-    let isMounted = true;
-
-    async function fetchInitialData() {
-      try {
-        setLoading(true);
-        const collectionRef = collection(db, collectionName);
-        const baseQuery = query(collectionRef, ...constraints, limit(pageSize));
-
-        const snapshot = await getDocs(baseQuery);
-        const processedDocs = await processDocuments(snapshot.docs);
-
-        if (isMounted) {
-          setDocuments(processedDocs);
-          setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-          setHasMore(snapshot.docs.length === pageSize);
-          setLoading(false);
-        }
-      } catch (err) {
-        if (isMounted) {
-          console.error("Error fetching data:", err);
-          setError(err.message);
-          setLoading(false);
-        }
-      }
-    }
-
-    fetchInitialData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [db, collectionName, JSON.stringify(constraints), pageSize]);
-
-  // Load more function
-  const loadMore = async () => {
-    if (!lastDoc || !hasMore || loading) return;
-
-    try {
-      setLoading(true);
-
-      const collectionRef = collection(db, collectionName);
-      const nextQuery = query(
-        collectionRef,
-        ...constraints,
-        startAfter(lastDoc),
-        limit(pageSize)
-      );
-
-      const snapshot = await getDocs(nextQuery);
-      const moreDocs = await processDocuments(snapshot.docs);
-
-      setDocuments((prev) => [...prev, ...moreDocs]);
-      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-      setHasMore(snapshot.docs.length === pageSize);
-    } catch (err) {
-      console.error("Error loading more:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    documents,
-    loading,
-    error,
-    hasMore,
-    loadMore,
-  };
-}

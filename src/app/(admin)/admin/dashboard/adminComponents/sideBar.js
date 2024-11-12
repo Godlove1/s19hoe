@@ -151,11 +151,11 @@ export default function SideBar({ toggleSidebar, sidebarOpen }) {
             <div className="image-logo flex justify-center items-center w-full mt-6">
               <Image
                 src={"/icons/logo.png"}
-                width={200}
-                height={200}
+                width={150}
+                height={150}
                 priority
                 alt="logo"
-                className="w-36"
+                className="w-32"
               />
             </div>
             <Button
