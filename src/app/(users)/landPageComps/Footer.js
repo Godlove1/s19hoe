@@ -1,5 +1,10 @@
 import Link from "next/link";
 
+// import { Client } from "appwrite";
+
+// const client = new Client();
+// client.setProject("6734a90d000c4c9f738e");
+
 export default function Footer() {
   return (
     <footer className="bg-green-50 py-4 mt-16">
@@ -109,6 +114,9 @@ export default function Footer() {
         <div className="mt-8 pt-8 border-t border-gray-200 text-center">
           <p className="text-sm font-bold text-gray-600">
             &copy; 2024 S19HOE. All rights reserved.
+          </p>
+           <p className="text-xs text-gray-300">
+           Designed by <a href="http://wa.me/+237676579370" target="_blank" className="font-bold" rel="noopener noreferrer">👑KyngKale</a>
           </p>
         </div>
       </div>
