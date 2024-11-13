@@ -22,28 +22,8 @@ import {
 } from "@/components/ui/accordion";
 import ProductCard from "@/components/custom/ProductCard";
 import { useCart } from "react-use-cart";
-import { useFirestoreQuery } from "@/lib/firebaseHooks";
+import { CURRENCY, useFirestoreQuery } from "@/lib/firebaseHooks";
 import { where } from "firebase/firestore";
-
-
-// Mock product data (in a real app, this would come from an API or database)
-const product = {
-  id: 1,
-  name: "Natural HPV Treatment",
-  price: 177.81,
-  originalPrice: 213.38,
-  category: "Immune Support",
-  description:
-    "Our Natural HPV Treatment is a powerful blend of herbs and nutrients designed to support your body's natural defenses against HPV (Human Papillomavirus). This unique formula combines the strength of traditional herbal remedies with modern nutritional science to provide comprehensive immune support.",
-  usage:
-    "Take 2 capsules twice daily with meals, or as directed by your healthcare practitioner. For best results, use consistently for at least 3-6 months. Always consult with a healthcare professional before starting any new supplement regimen, especially if you have any pre-existing medical conditions or are taking medications.",
-  images: [
-    "/placeholder.svg",
-    "/placeholder.svg",
-    "/placeholder.svg",
-    "/placeholder.svg",
-  ],
-};
 
 
 export default function ProductPage({ item }) {
@@ -86,13 +66,13 @@ export default function ProductPage({ item }) {
         {/* Product Images Carousel */}
         <Carousel className="w-full max-w-xs mx-auto">
           <CarouselContent>
-            {product.images.map((src, index) => (
+            {item?.productPics?.map((src, index) => (
               <CarouselItem key={index}>
                 <Image
                   src={src}
-                  alt={`${product?.name} - Image ${index + 1}`}
+                  alt={`${item?.name} - Image ${index + 1}`}
                   width={500}
-                  height={500}
+                  height={500} 
                   className="w-full rounded-lg"
                 />
               </CarouselItem>
@@ -108,7 +88,7 @@ export default function ProductPage({ item }) {
           {/* <p className="text-gray-600 mb-4">{product.category}</p> */}
           <div className="flex items-baseline mb-4">
             <span className="text-2xl font-bold text-green-600 mr-2">
-              ${item?.price.toFixed(2)}
+              { CURRENCY?.sign }{item?.price.toFixed(2)}
             </span>
             {/* <span className="text-gray-500 line-through">
               ${product.originalPrice.toFixed(2)}

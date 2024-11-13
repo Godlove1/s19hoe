@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { useCart } from "react-use-cart";
 import toast from "react-hot-toast";
-import { useFirestoreCRUD } from "@/lib/firebaseHooks";
+import { CURRENCY, useFirestoreCRUD } from "@/lib/firebaseHooks";
 
 export default function Cart() {
   const { isEmpty, cartTotal, totalUniqueItems, emptyCart, items, removeItem } =
@@ -144,7 +144,8 @@ export default function Cart() {
                 </div>
                 <div className="flex items-center">
                   <span className="text-sm font-medium">
-                    ${(item.price * item.quantity).toLocaleString()}
+                    {CURRENCY?.sign}
+                    {(item.price * item.quantity).toLocaleString()}
                   </span>
                   <Button
                     variant="ghost"
@@ -161,16 +162,21 @@ export default function Cart() {
             <div className="w-full mt-4">
               <div className="flex justify-between items-center text-sm w-full border-b pb-1">
                 <span className="font-medium">Sub-total:</span>
-                <span>${cartTotal.toLocaleString()}</span>
+                <span>
+                  {" "}
+                  {CURRENCY?.sign}
+                  {cartTotal.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm my-3 w-full pb-1 border-b">
                 <span className="font-medium">Shipping fee:</span>
-                <span>$200</span>
+                <span>{CURRENCY?.sign}200</span>
               </div>
               <div className="flex justify-between items-center w-full">
                 <span className="font-semibold">Total:</span>
                 <span className="font-bold text-lg">
-                  ${(cartTotal + 200).toLocaleString()}
+                  {CURRENCY?.sign}
+                  {(cartTotal + 200).toLocaleString()}
                 </span>
               </div>
             </div>

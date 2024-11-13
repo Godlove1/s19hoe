@@ -23,12 +23,67 @@ import {
 } from "firebase/firestore";
  import { db } from "./firebase";
 import toast from "react-hot-toast";
-
+import { Client, Storage } from "appwrite";
+import { v4 as uuidv4 } from "uuid";
 
 export const pageSize = 10;
 
-// const [refresh, setRefreshUI] = useState(0)
+export const CURRENCY = {
+  name: "USD",
+  sign: "$"
+};
+
+// refresh ui
 let refresh = 0;
+
+
+
+function generateUniqueFileId(fileName) {
+  const fileId = `${uuidv4().replace(/-/g, "")}-${fileName.replace(
+    /[^a-zA-Z0-9-_\.]/g,
+    ""
+  )}`;
+  return fileId.slice(0, 36);
+}
+
+export async function uploadFilesToAppWrite(files) {
+  try {
+    const client = new Client();
+    client
+      .setEndpoint("https://cloud.appwrite.io/v1")
+      .setProject("6734a90d000c4c9f738e");
+
+    const storage = new Storage(client);
+    const fileUrls = [];
+
+    for (const file of files) {
+      const uniqueFileName = generateUniqueFileId(file.name);
+      toast.loading(`Uploading images hold on ...`,{duration:3000});
+
+      const uploadedFile = await storage.createFile(
+        "6734acef00239ccc2d3b", // AppWrite storage bucket ID
+        uniqueFileName,
+        file
+      );
+
+      // Construct the file URL using the uploadedFile ID
+      const fileUrl = storage.getFileView(
+        "6734acef00239ccc2d3b",
+        `${uploadedFile.$id}`
+      );
+
+      fileUrls.push(fileUrl);
+    }
+
+    console.log(fileUrls, "fileUrls from function");
+
+    return fileUrls;
+  } catch (error) {
+    console.error("Error uploading files to AppWrite:", error);
+    throw error;
+  }
+}
+
   
 // Get a collection with constraints and pagination
 export function useFirestoreQuery(
@@ -164,11 +219,7 @@ export function useFirestoreCRUD(collectionName) {
         createdAt: new Date().toISOString(),
       };
 
-       await toast.promise(setDoc(docRef, object), {
-         loading: "Creating ...",
-         success: <b>Saved!</b>,
-         error: <b>Could not Save.</b>,
-       });
+       await setDoc(docRef, object);
       
       refresh++
 

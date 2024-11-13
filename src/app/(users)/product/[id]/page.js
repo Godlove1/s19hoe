@@ -19,7 +19,6 @@ async function getProduct(id) {
       ...productSnap.data(),
     };
 
-
     return product;
   } catch (error) {
     console.error("Error fetching product:", error);
@@ -29,8 +28,8 @@ async function getProduct(id) {
 
 // Metadata generation
 export async function generateMetadata({ params }) {
-  const product = await getProduct(params?.id);
-
+  const { id } = await params;
+  const product = await getProduct(id);
 
   if (!product) {
     return {
@@ -44,10 +43,10 @@ export async function generateMetadata({ params }) {
     openGraph: {
       title: product.name,
       description: product.description.slice(0, 160),
-      images: product.images?.[0]
+      images: product.productPics?.[0]
         ? [
             {
-              url: product.images[0],
+              url: product.productPics[0],
               width: 800,
               height: 600,
               alt: product.name,
@@ -60,12 +59,12 @@ export async function generateMetadata({ params }) {
 
 // Server Component
 export default async function ProductDetails({ params }) {
-  const product = await getProduct(params.id);
+  const { id } = await params;
+  const product = await getProduct(id);
 
-  
   console.log(product, "product");
-  
-  console.log(params?.id, "id");
+
+  console.log(id, "id");
 
   if (!product) {
     return (

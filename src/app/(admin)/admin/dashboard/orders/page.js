@@ -5,6 +5,7 @@ import GridTable from "../adminComponents/GridTable";
 import SkeletonTable from "../adminComponents/tableLoading";
 import ActionButtonComponent from "../adminComponents/ActionButtonComponent";
 import {
+  CURRENCY,
   useFirestoreQuery,
 } from "@/lib/firebaseHooks";
 import { orderBy } from "firebase/firestore";
@@ -44,7 +45,7 @@ export default function AllOrders() {
       minWidth: 70,
       headerName: "Total Price",
       valueGetter: (params) => params.data.totalPrice,
-      valueFormatter: (params) => "XAF " + params.value.toLocaleString(),
+      valueFormatter: (params) => CURRENCY?.sign + params.value.toLocaleString(),
     },
     {
       field: "itemsCount",

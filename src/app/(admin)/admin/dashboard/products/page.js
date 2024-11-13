@@ -28,6 +28,8 @@ import GridTable from "../adminComponents/GridTable";
 import SkeletonTable from "../adminComponents/tableLoading";
 import ActionButtonComponent from "../adminComponents/ActionButtonComponent";
 import {
+  CURRENCY,
+  uploadFilesToAppWrite,
   useFirestoreCRUD,
   useFirestoreQuery,
   useMultiJoinFirestoreQuery,
@@ -150,17 +152,9 @@ export default function AllFood() {
 
       // Only process images if files were selected
       if (imageFiles.length > 0) {
-        const imageUrls = await Promise.all(
-          imageFiles.map(async (file) => {
-            toast.loading(`Uploading ${file.name}`);
-            const storage = getStorage();
-            const uniqueFileName = `${Date.now()}_${file.name}`;
-            const storageRef = ref(storage, `productImages/${uniqueFileName}`);
-            await uploadBytes(storageRef, file);
-            return await getDownloadURL(storageRef);
-          })
-        );
-        productData.productPics = imageUrls;
+        const fileUrls = await uploadFilesToAppWrite(Array.from(imageFiles));
+        console.log("Uploaded file URLs:", fileUrls);
+        productData.productPics = fileUrls;
       }
 
       await toast.promise(addDocument(productData), {
@@ -223,7 +217,7 @@ export default function AllFood() {
       minWidth: 70,
       headerName: "Price",
       valueGetter: (params) => params.data.price,
-      valueFormatter: (params) => "XAF " + params.value.toLocaleString(),
+      valueFormatter: (params) => CURRENCY?.sign + params.value.toLocaleString(),
     },
     {
       field: "categoryId",
@@ -266,7 +260,10 @@ export default function AllFood() {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[900px] rounded-lg p-0 lg:p-6">
+          <DialogContent
+            aria-describedby={undefined}
+            className="sm:max-w-[900px] rounded-lg p-0 lg:p-6"
+          >
             <DialogHeader>
               <DialogTitle className="text-red-500 font-bold text-xl">
                 New Product
@@ -290,7 +287,7 @@ export default function AllFood() {
                 </div>
 
                 <div>
-                  <Label htmlFor="price">Price</Label>
+                  <Label htmlFor="price">Price(in {CURRENCY?.name})</Label>
                   <Input
                     id="price"
                     name="price"
@@ -416,8 +413,8 @@ export default function AllFood() {
                 >
                   {ELoad ? (
                     <>
-                      <span className="loading loading-ring loading-lg text-white"></span>{" "}
-                      saving
+                      <span className="ml-2 animate-spin">⟳</span>
+                      adding new product
                     </>
                   ) : (
                     "Add product"

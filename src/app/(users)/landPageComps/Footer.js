@@ -1,9 +1,6 @@
 import Link from "next/link";
 
-// import { Client } from "appwrite";
 
-// const client = new Client();
-// client.setProject("6734a90d000c4c9f738e");
 
 export default function Footer() {
   return (
