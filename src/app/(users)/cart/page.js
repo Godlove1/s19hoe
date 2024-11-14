@@ -14,14 +14,26 @@ import {
 } from "@/components/ui/card";
 import { useCart } from "react-use-cart";
 import toast from "react-hot-toast";
-import { CURRENCY, useFirestoreCRUD } from "@/lib/firebaseHooks";
+import { CURRENCY, useFirestoreCRUD, useFirestoreQuery } from "@/lib/firebaseHooks";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { loadGetInitialProps } from "next/dist/shared/lib/utils";
 
 export default function Cart() {
+
   const { isEmpty, cartTotal, totalUniqueItems, emptyCart, items, removeItem } =
     useCart();
+  
+  const {
+    data: shippingPrices,
+    loading,
+    error,
+  } = useFirestoreQuery("allCountries");
+
+  
   const { addDocument } = useFirestoreCRUD("allOrders");
 
   const [isLoading, setIsLoading] = useState(false);
+  const [shippingPrice, setShippingPrice] = useState(20);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     name: "",
@@ -70,11 +82,14 @@ export default function Cart() {
         ...formData,
         cartItems: items,
         itemCount: totalUniqueItems,
-        cartTotal: cartTotal + 200, // Including shipping fee
+        cartTotal: cartTotal + Number(shippingPrice), // Including shipping fee
         orderDate: new Date(),
         status: "pending",
       };
 
+  
+      console.log(orderData, "order Data")
+       
       await toast.promise(addDocument(orderData), {
         loading: "Processing your order...",
         success: "Order placed successfully!",
@@ -170,13 +185,13 @@ export default function Cart() {
               </div>
               <div className="flex justify-between items-center text-sm my-3 w-full pb-1 border-b">
                 <span className="font-medium">Shipping fee:</span>
-                <span>{CURRENCY?.sign}200</span>
+                <span>{CURRENCY?.sign}{shippingPrice}</span>
               </div>
               <div className="flex justify-between items-center w-full">
                 <span className="font-semibold">Total:</span>
                 <span className="font-bold text-lg">
                   {CURRENCY?.sign}
-                  {(cartTotal + 200).toLocaleString()}
+                  {(cartTotal + Number(shippingPrice)).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -227,6 +242,40 @@ export default function Cart() {
                   <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
                 )}
               </div>
+
+              <div>
+                <label
+                  htmlFor="address"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Select Country
+                </label>
+                <Select
+                  onValueChange={(value) =>
+                   setShippingPrice(value)
+                  }
+                >
+                  <SelectTrigger className="">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>--shipping country--</SelectLabel>
+
+                      {shippingPrices?.map((res, i) => {
+                        return (
+                          <SelectItem key={i} value={res?.price}>
+                            {res?.countryName}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+
+                <p className="text-xs text-gray-400 italic">*shipping fee will be calculated based on your country</p>
+              </div>
+
               <div>
                 <label
                   htmlFor="address"

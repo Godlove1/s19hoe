@@ -26,7 +26,7 @@ import toast from "react-hot-toast";
 import { Client, Storage } from "appwrite";
 import { v4 as uuidv4 } from "uuid";
 
-export const pageSize = 10;
+export const pageSize = 16;
 
 export const CURRENCY = {
   name: "USD",
@@ -127,7 +127,7 @@ export function useFirestoreQuery(
     };
 
     fetchData();
-  }, [collectionName, ...constraints, refresh]);
+  }, [refresh]);
 
   // Load more function
   const loadMore = useCallback(async () => {
@@ -157,7 +157,7 @@ export function useFirestoreQuery(
     } finally {
       setLoading(false);
     }
-  }, [collectionName, lastDoc, hasMore, ...constraints]);
+  }, [lastDoc, hasMore]);
 
   return { data, loading, error, hasMore, loadMore };
 }

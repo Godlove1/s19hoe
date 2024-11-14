@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useCart } from "react-use-cart";
 import { CURRENCY } from "@/lib/firebaseHooks";
+import toast from "react-hot-toast";
 
 
 export default function ProductCard({ product }) {
@@ -15,15 +16,15 @@ export default function ProductCard({ product }) {
     <Card className="group relative">
       <CardContent className="p-2">
         <Link href={`/product/${product.id}`}>
-          <Image
+          <img
             src={
               product?.productPics
                 ? product?.productPics[0]
                 : "/placeholder.svg"
             }
             alt={product.name}
-            width={300}
-            height={300}
+            // width={300}
+            // height={300}
             className="w-full  max-h-80 lg:h-64 object-fill lg:object-cover rounded-lg mb-4"
           />
         </Link>
@@ -45,7 +46,10 @@ export default function ProductCard({ product }) {
                 ? "bg-gray-700  text-white"
                 : "bg-green-600 hover:bg-green-700 text-white"
             }`}
-            onClick={() => addItem(product)}
+            onClick={() => {
+              addItem(product);
+              toast.success(`${product?.name} added to cart`)
+            }}
           >
             {inCart(product?.id) ? "In cart" : "Add to cart"}
           </Button>
