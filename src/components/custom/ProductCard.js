@@ -16,15 +16,16 @@ export default function ProductCard({ product }) {
     <Card className="group relative">
       <CardContent className="p-2">
         <Link href={`/product/${product.id}`}>
-          <img
+          <Image
             src={
               product?.productPics
                 ? product?.productPics[0]
                 : "/placeholder.svg"
             }
             alt={product.name}
-            // width={300}
-            // height={300}
+            priority
+            width={300}
+            height={300}
             className="w-full  max-h-80 lg:h-64 object-fill lg:object-cover rounded-lg mb-4"
           />
         </Link>
