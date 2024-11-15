@@ -62,9 +62,9 @@ export default async function ProductDetails({ params }) {
   const { id } = await params;
   const product = await getProduct(id);
 
-  console.log(product, "product");
+  // console.log(product, "product");
 
-  console.log(id, "id");
+  // console.log(id, "id");
 
   if (!product) {
     return (

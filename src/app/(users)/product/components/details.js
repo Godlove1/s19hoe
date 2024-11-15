@@ -28,54 +28,52 @@ import toast from "react-hot-toast";
 
 
 export default function ProductPage({ item }) {
-   
-    // const {
-    //   data: recommendedProducts,
-    //   loading,
-    //   error,
-    // } = useFirestoreQuery("allProducts", [where("categoryId", "==", item?.categoryId)]);
+  // const {
+  //   data: recommendedProducts,
+  //   loading,
+  //   error,
+  // } = useFirestoreQuery("allProducts", [where("categoryId", "==", item?.categoryId)]);
 
-  const { updateItemQuantity, getItem,inCart, addItem } = useCart();
-
-  // Get the item from cart if it exists
-  const cartItem = getItem(item.id);
+  const { updateItemQuantity, getItem, inCart, addItem } = useCart();
+  // Ensure item is defined and has the necessary properties
+  const cartItem = getItem(item?.id);
   const currentQty = cartItem ? cartItem.quantity : 1;
 
   const incrementQty = () => {
     if (cartItem) {
-      // If item exists in cart, increment its quantity
       updateItemQuantity(item.id, currentQty + 1);
     } else {
-      // If item doesn't exist in cart, add it with quantity 1
       addItem(item, 1);
-      toast.success(`${item?.name} added to cart `)
+      toast.success(`${item?.name} added to cart`);
     }
   };
 
   const decrementQty = () => {
     if (cartItem && currentQty > 1) {
-      // If item exists in cart and quantity > 1, decrement
       updateItemQuantity(item.id, currentQty - 1);
     } else if (cartItem && currentQty === 1) {
-      // If quantity is 1, you might want to remove the item
       updateItemQuantity(item.id, 0); // This will remove the item from cart
     }
   };
 
+  const productPics = item?.productPics || [];
+  const name = item?.name || "Product Name";
+  const price = item?.price || 0;
+
+  
   return (
     <div className="p-4 lg:p-12">
       <div className="grid md:grid-cols-2 gap-8">
         {/* Product Images Carousel */}
         <Carousel className="w-full max-w-xs mx-auto">
           <CarouselContent>
-            {item?.productPics?.map((src, index) => (
+            {productPics?.map((src, index) => (
               <CarouselItem key={index}>
                 <div className="aspect-square relative overflow-hidden rounded-lg">
                   <Image
                     src={src}
                     alt={`${item?.name} - Image ${index + 1}`}
                     fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-contain"
                   />
                 </div>
@@ -88,12 +86,12 @@ export default function ProductPage({ item }) {
 
         {/* Product Details */}
         <div>
-          <h1 className="text-3xl font-bold mb-4">{item?.name}</h1>
+          <h1 className="text-3xl font-bold mb-4">{name}</h1>
           {/* <p className="text-gray-600 mb-4">{product.category}</p> */}
           <div className="flex items-baseline mb-4">
             <span className="text-2xl font-bold text-green-600 mr-2">
               {CURRENCY?.sign}
-              {item?.price.toFixed(2)}
+              {price.toFixed(2)}
             </span>
             {/* <span className="text-gray-500 line-through">
               ${product.originalPrice.toFixed(2)}
@@ -137,22 +135,22 @@ export default function ProductPage({ item }) {
 
       {/* Recommended Products */}
       <section className="mt-16 md:mt-32 md:px-32">
-        {/* <h2 className="text-2xl font-bold mb-6">Recommended Products</h2> */}
+        {/* <h2 className="text-2xl font-bold mb-6">Recommended Products</h2>
 
-        {/* {loading &&
+        {loading &&
           recommendedProducts.length ===0 (
               <div className="flex items-center justify-center text-gray-400">
                 {" "}
                 loading recommendations
                 <Loader2 className="animate-spin h-5 w-5 mr-3" />
               </div>
-            )} */}
+            )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 px-4">
-          {/* {recommendedProducts?.map((product, i) => (
+          {recommendedProducts?.map((product, i) => (
             <ProductCard key={i} product={product} />
-          ))} */}
-        </div>
+          ))}
+        </div> */}
       </section>
     </div>
   );

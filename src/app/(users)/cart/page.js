@@ -17,6 +17,8 @@ import toast from "react-hot-toast";
 import { CURRENCY, useFirestoreCRUD, useFirestoreQuery } from "@/lib/firebaseHooks";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { loadGetInitialProps } from "next/dist/shared/lib/utils";
+import { sendEmailReq } from "@/lib/sendMail";
+import { useRouter } from "next/navigation";
 
 export default function Cart() {
 
@@ -29,6 +31,7 @@ export default function Cart() {
     error,
   } = useFirestoreQuery("allCountries");
 
+  const router = useRouter()
   
   const { addDocument } = useFirestoreCRUD("allOrders");
 
@@ -88,8 +91,12 @@ export default function Cart() {
       };
 
   
-      console.log(orderData, "order Data")
+      // console.log(orderData, "order Data")
+
+      const amount = CURRENCY?.sign + '' + orderData?.cartTotal;
        
+      sendEmailReq(orderData?.name, amount);
+      
       await toast.promise(addDocument(orderData), {
         loading: "Processing your order...",
         success: "Order placed successfully!",
@@ -125,7 +132,7 @@ export default function Cart() {
             <Button
               variant="outline"
               className="text-green-600"
-              onClick={() => window.history.back()}
+              onClick={() => router.push("/")}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Continue Shopping
