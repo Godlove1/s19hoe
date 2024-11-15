@@ -1,4 +1,4 @@
-import Compo from "../Compo";
+import OrderCard from "../Compo";
 
 
 export default async function EditPage({ params }) {
@@ -9,8 +9,8 @@ export default async function EditPage({ params }) {
     console.log(editId, "id editing")
 
   return (
-      <>
-      <Compo editId={editId} />
-      </>
+      <div className="w-full flex justify-center items-center">
+      <OrderCard editId={editId} />
+      </div>
   );
 }

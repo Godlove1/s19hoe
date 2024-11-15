@@ -4,11 +4,14 @@ import * as React from "react";
 
 
 
-export const EmailTemplate = ({ amount, firstName}) => (
+export const EmailTemplate = ({ amount, firstName }) => (
   <div className="bg-white p-6 rounded-lg shadow-md">
     <p className="text-2xl font-bold mb-4">
       New Order Received, {firstName} just placed an Order worth{" "}
-      <strong>{CURRENCY?.sign}{amount}</strong>
+      <strong>
+        {CURRENCY?.sign}
+        {amount}
+      </strong>
       on your website!
     </p>
     <p className="text-gray-700 mb-4">
@@ -25,13 +28,14 @@ export const EmailTemplate = ({ amount, firstName}) => (
       </a>
     </div>
     <p className="text-gray-700 mt-4">
-      If you have any questions or need assistance, don't hesitate to reach out
-      to our support team.
+      If you have any questions or need assistance, don&apos;t hesitate to reach
+      out to our support team.
     </p>
-    <br /><br />
+    <br />
+    <br />
     <p className="text-gray-700 mt-4">
       Best regards,
-      <br /> 
+      <br />
       The Team <br />
       KYNGKALE
     </p>

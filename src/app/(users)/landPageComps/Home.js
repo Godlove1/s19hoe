@@ -127,7 +127,7 @@ export default function Homepage() {
             <span className="text-green-600 font-extrabold">SOLUTIONS</span>
           </h1>
           <p className="text-gray-600 text-sm lg:text-base my-4 max-w-2xl mx-auto">
-            Discover nature's most powerful remedies for common health
+            Discover nature&apos;s most powerful remedies for common health
             conditions. Our carefully selected natural solutions support your
             journey to wellness.
           </p>
@@ -251,7 +251,7 @@ export default function Homepage() {
 
                 {!hasMore && products.length > 0 && (
                   <div className="text-center italic text-gray-400 animate-pulse">
-                    That's all!
+                    That&apos;s all!
                   </div>
                 )}
               </div>

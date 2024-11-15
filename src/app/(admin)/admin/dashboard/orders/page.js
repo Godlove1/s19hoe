@@ -8,7 +8,6 @@ import {
   CURRENCY,
   useFirestoreQuery,
 } from "@/lib/firebaseHooks";
-import { orderBy } from "firebase/firestore";
 
 export default function AllOrders() {
   
@@ -40,23 +39,28 @@ export default function AllOrders() {
       minWidth: 250,
     },
     {
-      field: "total",
+      field: "address",
       autoSize: true,
       minWidth: 70,
-      headerName: "Total Price",
-      valueGetter: (params) => params.data.totalPrice,
-      valueFormatter: (params) => CURRENCY?.sign + params.value.toLocaleString(),
+      headerName: "Delivery Address",
+    },
+
+    {
+      field: "phone",
+      autoSize: true,
+      minWidth: 70,
+      headerName: "Phone number",
     },
     {
-      field: "itemsCount",
+      field: "itemCount",
       headerName: "# of Items",
-      minWidth: 70,
+      autoSize: true,
+      minWidth: 60,
     },
     {
       field: "status",
-      flex: 1,
       cellClassRules: {
-        "rag-red": (params) => params.data.status === "OFF",
+        "rag-red": (params) => params.data.status === "pending",
       },
       autoSize: true,
       minWidth: 80,
@@ -64,10 +68,7 @@ export default function AllOrders() {
     {
       field: "Action",
       filter: false,
-      cellRenderer: (props) => (
-        <ActionButtonComponent data={props.data} />
-      ),
-      flex: 2,
+      cellRenderer: (props) => <ActionButtonComponent data={props.data} />,
       autoSize: true,
       minWidth: 100,
     },

@@ -2,12 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  getDocument,
-  singleAnnounceRef,
-  singleCatRef,
-  updateDocument,
-} from "@/lib/api";
-import {
   Select,
   SelectContent,
   SelectGroup,
