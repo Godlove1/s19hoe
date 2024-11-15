@@ -20,6 +20,8 @@ import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Loading from "@/app/(users)/loading";
 import {
+  CURRENCY,
+  uploadFilesToAppWrite,
   useFirestoreCRUD,
   useFirestoreDoc,
   useFirestoreQuery,
@@ -126,22 +128,11 @@ export default function ProductEditForm({ editId }) {
         productPics: imagePreviews,
       };
 
-      if (imageFiles.length > 0) {
-        const storage = getStorage();
-        const imageUrls = await Promise.all(
-          imageFiles.map(async (file) => {
-            const uniqueFileName = `${Date.now()}_${file.name}`;
-            const storageRef = ref(storage, `productImages/${uniqueFileName}`);
-            await toast.promise(uploadBytes(storageRef, file), {
-              loading: `Uploading ${file.name}`,
-              success: `${file.name} uploaded`,
-              error: `Failed to upload ${file.name}`,
-            });
-            return await getDownloadURL(storageRef);
-          })
-        );
-        productData.productPics = imageUrls;
-      }
+       if (imageFiles.length > 0) {
+         const fileUrls = await uploadFilesToAppWrite(Array.from(imageFiles));
+         console.log("Uploaded file URLs:", fileUrls);
+         productData.productPics = fileUrls;
+       }
 
       await toast.promise(updateDocument(editId, productData), {
         loading: "Updating product...",
@@ -186,7 +177,7 @@ if (loading || !formData.status) return <Loading />;
             </div>
 
             <div>
-              <Label htmlFor="price">Price</Label>
+              <Label htmlFor="price">Price(in {CURRENCY?.name})</Label>
               <Input
                 id="price"
                 name="price"

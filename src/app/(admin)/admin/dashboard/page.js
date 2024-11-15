@@ -4,16 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { Notebook } from "lucide-react";
 import { CatalogueIcon, GroupItemsIcon } from "hugeicons-react";
-import { allCatsRef, allCustomRequestsRef, allOrdersRef } from "@/lib/api";
-import { useState, useEffect } from "react";
-import {
-  getCountFromServer,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  where,
-} from "firebase/firestore";
 import { useMultiCollectionStats } from "@/lib/firebaseHooks";
 
 export default function Dashboard() {
