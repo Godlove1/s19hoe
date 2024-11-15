@@ -26,6 +26,7 @@ export const AuthContextProvider = ({ children }) => {
       console.log("Auth state changed:", user ? user.uid : "No user");
       if (user) {
         setUser(user);
+        console.log("user is available")
       } else {
         // Only sign in anonymously if there's no user at all
         signInAnonymously(auth).catch((error) => {
