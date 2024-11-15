@@ -14,29 +14,33 @@ import {
 } from "@/components/ui/card";
 import { useCart } from "react-use-cart";
 import toast from "react-hot-toast";
-import { CURRENCY, useFirestoreCRUD, useFirestoreQuery } from "@/lib/firebaseHooks";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { loadGetInitialProps } from "next/dist/shared/lib/utils";
+import {
+  CURRENCY,
+  useFirestoreCRUD,
+  useFirestoreQuery,
+} from "@/lib/firebaseHooks";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { sendEmailReq } from "@/lib/sendMail";
 import { useRouter } from "next/navigation";
 
 export default function Cart() {
-
   const { isEmpty, cartTotal, totalUniqueItems, emptyCart, items, removeItem } =
     useCart();
-  
-  const {
-    data: shippingPrices,
-    loading,
-    error,
-  } = useFirestoreQuery("allCountries");
-
-  const router = useRouter()
-  
+  const { data: shippingPrices } = useFirestoreQuery("allCountries");
+  const router = useRouter();
   const { addDocument } = useFirestoreCRUD("allOrders");
 
   const [isLoading, setIsLoading] = useState(false);
   const [shippingPrice, setShippingPrice] = useState(20);
+  const [countryName, setCountryName] = useState("Others");
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     name: "",
@@ -71,6 +75,34 @@ export default function Cart() {
     }
   };
 
+  const sendToWhatsApp = (orderData) => {
+    const message = `
+      *New Order Details*
+      -------------------
+      Customer: ${orderData.name}
+      Address: ${orderData.address}
+      Country: ${orderData.countryName}
+      Shipping Fee: ${CURRENCY?.sign}${orderData.shippingFee}
+      Phone: ${orderData.phone}
+
+      *Items*:
+      ${orderData.cartItems
+        .map(
+          (item) =>
+            `- ${item.name}: ${CURRENCY?.sign}${item.price.toLocaleString()}`
+        )
+        .join("\n")}
+
+      Total Amount + Shipping Fee: *${orderData.cartTotal.toLocaleString()}*
+
+      Order Notes: ${orderData.note}
+    `.trim();
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/+237676579370?text=${encodedMessage}`;
+    window.open(whatsappUrl, "_blank");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -86,22 +118,22 @@ export default function Cart() {
         cartItems: items,
         itemCount: totalUniqueItems,
         cartTotal: cartTotal + Number(shippingPrice), // Including shipping fee
-        orderDate: new Date(),
+        orderDate: new Date().toISOString(),
         status: "pending",
+        shippingFee: shippingPrice,
+        countryName,
       };
 
-  
-      // console.log(orderData, "order Data")
+      const amount = `${CURRENCY?.sign}${orderData.cartTotal}`;
+      sendEmailReq(orderData.name, amount);
 
-      const amount = CURRENCY?.sign + '' + orderData?.cartTotal;
-       
-      sendEmailReq(orderData?.name, amount);
-      
       await toast.promise(addDocument(orderData), {
         loading: "Processing your order...",
         success: "Order placed successfully!",
         error: "Failed to place order",
       });
+
+      sendToWhatsApp(orderData);
 
       emptyCart();
       setFormData({
@@ -110,6 +142,8 @@ export default function Cart() {
         address: "",
         note: "",
       });
+      setShippingPrice(20);
+      setCountryName("Others");
     } catch (err) {
       console.error("Error placing order:", err);
       toast.error("Failed to place order");
@@ -192,7 +226,10 @@ export default function Cart() {
               </div>
               <div className="flex justify-between items-center text-sm my-3 w-full pb-1 border-b">
                 <span className="font-medium">Shipping fee:</span>
-                <span>{CURRENCY?.sign}{shippingPrice}</span>
+                <span>
+                  {CURRENCY?.sign}
+                  {shippingPrice}
+                </span>
               </div>
               <div className="flex justify-between items-center w-full">
                 <span className="font-semibold">Total:</span>
@@ -258,17 +295,20 @@ export default function Cart() {
                   Select Country
                 </label>
                 <Select
-                  onValueChange={(value) =>
-                   setShippingPrice(value)
-                  }
+                  onValueChange={(value) => {
+                    const selectedCountry = shippingPrices.find(
+                      (res) => res.price === value
+                    );
+                    setShippingPrice(value);
+                    setCountryName(selectedCountry?.countryName);
+                  }}
                 >
                   <SelectTrigger className="">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder="Select country" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
                       <SelectLabel>--shipping country--</SelectLabel>
-
                       {shippingPrices?.map((res, i) => {
                         return (
                           <SelectItem key={i} value={res?.price}>
@@ -280,7 +320,9 @@ export default function Cart() {
                   </SelectContent>
                 </Select>
 
-                <p className="text-xs text-gray-400 italic">*shipping fee will be calculated based on your country</p>
+                <p className="text-xs text-gray-400 italic">
+                  *shipping fee will be calculated based on your country
+                </p>
               </div>
 
               <div>

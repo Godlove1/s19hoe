@@ -10,7 +10,7 @@ export async function sendEmailReq(names, amount) {
       from: `${names} <samba@sambaotavise.com>`,
       to: ["akalegodlove@gmail.com"],
       subject: "New Order",
-      react: EmailTemplate({ amount: amount, firstName: names }),
+      react: EmailTemplate({ amount: amount, firstName: names }), 
     });
 
     console.log(data, " sent email");
