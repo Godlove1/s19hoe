@@ -99,7 +99,7 @@ export default function Cart() {
     `.trim();
 
     const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/+237676579370?text=${encodedMessage}`;
+    const whatsappUrl = `https://wa.me/+237672595989?text=${encodedMessage}`;
     window.open(whatsappUrl, "_blank");
   };
 
