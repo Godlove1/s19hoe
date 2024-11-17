@@ -125,7 +125,7 @@ export default function Cart() {
       };
 
       const amount = `${CURRENCY?.sign}${orderData.cartTotal}`;
-      sendEmailReq(orderData.name, amount);
+      // sendEmailReq(orderData.name, amount);
 
       await toast.promise(addDocument(orderData), {
         loading: "Processing your order...",
